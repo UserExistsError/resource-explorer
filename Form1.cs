@@ -80,11 +80,19 @@ namespace ResourceExplorer
             }
             else if (resource.getDisplayType() == "STRING" ||
                 resource.getDisplayType() == "HTML" ||
-                resource.getDisplayType() == "MANIFEST")
+                resource.getDisplayType() == "MANIFEST" ||
+                resource.getDisplayType() == "VERSION")
             {
                 byte[] data = this.currentFile.GetResource(resource, 2048);
                 TextBox box = new TextBox();
-                box.Text = resource.getEncoding().GetString(data);
+                if (resource.getDisplayType() == "VERSION")
+                {
+                    box.Text = Encoding.Unicode.GetString(data).Substring(3).Replace('\u0000', ' ');
+                }
+                else
+                {
+                    box.Text = resource.getEncoding().GetString(data);
+                }
                 //box.WordWrap = true;
                 box.Multiline = true;
                 box.Dock = DockStyle.Fill;

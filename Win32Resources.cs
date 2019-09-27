@@ -8,7 +8,7 @@ namespace ResourceExplorer
 {
     class Win32Resources
     {
-        IntPtr hLibrary;
+        private IntPtr hLibrary;
         private string originalFilename;
 
         // (HMODULE hMod, WCHAR* type, LONG_PTR params)
@@ -135,8 +135,6 @@ namespace ResourceExplorer
             {
                 return 0;
             }
-            Console.WriteLine("hModule = {0}, type = {1}, name = {2}, size = {3}",
-                hModule, type, name, size);
 
             string typeString = Marshal.PtrToStringUni(type);
             if (IsIntResource(type))
@@ -258,6 +256,10 @@ namespace ResourceExplorer
             if (getDisplayType() == "STRING" || getDisplayType() == "HTML" || getDisplayType() == "MANIFEST")
             {
                 s = getEncoding().GetString(this.preview);
+            }
+            else if (getDisplayType() == "VERSION")
+            {
+                s = Encoding.Unicode.GetString(this.preview).Substring(3).Replace('\u0000', ' ');
             }
             return s.Substring(0, Math.Min(s.Length, size));
         }
