@@ -29,13 +29,19 @@ namespace ResourceExplorer
             this.resourceListView.Columns.Add("Type", 80);
             this.resourceListView.Columns.Add("Size", 80);
             this.resourceListView.Columns.Add("Hex", 200);
-            this.resourceListView.Columns.Add("Content", -2);
+            this.resourceListView.Columns.Add("Printable", -2);
         }
 
-        void DisplayStatus(string message)
+        public void DisplayStatus(string message)
         {
             //XXX messagebox or inline UI element instead
             Console.WriteLine(message);
+        }
+
+        private void ResetUi()
+        {
+            this.previewPanel.Controls.Clear();
+            this.resourceListView.Items.Clear();
         }
 
         private Resource[] GetSelectedResources()
@@ -71,6 +77,7 @@ namespace ResourceExplorer
                         pic.Image = new Bitmap(stream);
                     else
                         pic.Image = Bitmap.FromHicon(new Icon(stream, new Size(48, 48)).Handle);
+                    pic.SizeMode = PictureBoxSizeMode.AutoSize;
                     this.previewPanel.Controls.Add(pic);
                 }
                 catch (ArgumentException)
@@ -93,10 +100,27 @@ namespace ResourceExplorer
                 {
                     box.Text = resource.getEncoding().GetString(data);
                 }
-                //box.WordWrap = true;
                 box.Multiline = true;
                 box.Dock = DockStyle.Fill;
+                box.WordWrap = true;
+                box.ScrollBars = ScrollBars.Both;
                 this.previewPanel.Controls.Add(box);
+            }
+            else
+            {
+                // best effort "strings"
+                byte[] data = this.currentFile.GetResource(resource, 2048);
+                string printable = Resource.GetString(data);
+                if (printable.Length > 3)
+                {
+                    TextBox box = new TextBox();
+                    box.Text = printable.ToString();
+                    box.Multiline = true;
+                    box.Dock = DockStyle.Fill;
+                    box.WordWrap = true;
+                    box.ScrollBars = ScrollBars.Both;
+                    this.previewPanel.Controls.Add(box);
+                }
             }
         }
 
@@ -128,7 +152,7 @@ namespace ResourceExplorer
 
         private void ProcessFile(string filename)
         {
-            this.resourceListView.Items.Clear();
+            ResetUi();
             try
             {
                 currentFile = new Win32Resources(filename);

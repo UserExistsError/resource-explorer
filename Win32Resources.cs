@@ -206,15 +206,12 @@ namespace ResourceExplorer
             this.preview = data;
         }
 
-        /*
-         * try to determine the encoding
-         */
-        public Encoding getEncoding()
+        public static Encoding GetEncoding(byte[] data)
         {
-            if (this.preview.Length >= 3)
+            if (data.Length >= 3)
             {
                 byte[] bom = new byte[3]{
-                    this.preview[0], this.preview[1], this.preview[2]
+                    data[0], data[1], data[2]
                 };
                 if (bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf)
                     return Encoding.UTF8;
@@ -228,6 +225,14 @@ namespace ResourceExplorer
                     return Encoding.BigEndianUnicode;
             }
             return Encoding.Default;
+        }
+
+        /*
+         * try to determine the encoding
+         */
+        public Encoding getEncoding()
+        {
+            return GetEncoding(this.preview);
         }
 
         public string getDisplayType()
@@ -261,7 +266,36 @@ namespace ResourceExplorer
             {
                 s = Encoding.Unicode.GetString(this.preview).Substring(3).Replace('\u0000', ' ');
             }
+            else
+            {
+                s = GetString(this.preview);
+            }
             return s.Substring(0, Math.Min(s.Length, size));
+        }
+
+        public static string GetString(byte[] data)
+        {
+            Encoding enc = Resource.GetEncoding(data);
+            StringBuilder printable = new StringBuilder();
+            bool lastnull = false;
+            foreach (Char c in enc.GetString(data))
+            {
+                if (Char.IsLetterOrDigit(c) || Char.IsWhiteSpace(c) || Char.IsPunctuation(c))
+                {
+                    printable.Append(c);
+                    lastnull = false;
+                }
+                else if (c == 0)
+                {
+                    // replace consecutive nulls with a single space
+                    if (!lastnull)
+                    {
+                        lastnull = true;
+                        printable.Append(' ');
+                    }
+                }
+            }
+            return printable.ToString();
         }
 
         public Resource(string filename, IntPtr hResource, string type, string name, int size)

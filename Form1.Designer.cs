@@ -35,15 +35,20 @@
             this.openFileLabel = new System.Windows.Forms.Label();
             this.exportButton = new System.Windows.Forms.Button();
             this.previewPanel = new System.Windows.Forms.Panel();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.splitContainer1.Panel1.SuspendLayout();
+            this.splitContainer1.Panel2.SuspendLayout();
+            this.splitContainer1.SuspendLayout();
             this.SuspendLayout();
             // 
             // resourceListView
             // 
             this.resourceListView.AllowDrop = true;
+            this.resourceListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.resourceListView.HideSelection = false;
-            this.resourceListView.Location = new System.Drawing.Point(12, 58);
+            this.resourceListView.Location = new System.Drawing.Point(0, 0);
             this.resourceListView.Name = "resourceListView";
-            this.resourceListView.Size = new System.Drawing.Size(776, 514);
+            this.resourceListView.Size = new System.Drawing.Size(776, 516);
             this.resourceListView.TabIndex = 0;
             this.resourceListView.UseCompatibleStateImageBehavior = false;
             this.resourceListView.SelectedIndexChanged += new System.EventHandler(this.ListView1_SelectedIndexChanged);
@@ -85,24 +90,46 @@
             // 
             // previewPanel
             // 
-            this.previewPanel.AutoScroll = true;
-            this.previewPanel.Location = new System.Drawing.Point(12, 578);
+            this.previewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.previewPanel.Location = new System.Drawing.Point(0, 0);
             this.previewPanel.Name = "previewPanel";
-            this.previewPanel.Size = new System.Drawing.Size(776, 148);
+            this.previewPanel.Size = new System.Drawing.Size(776, 149);
             this.previewPanel.TabIndex = 5;
+            // 
+            // splitContainer1
+            // 
+            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.splitContainer1.Location = new System.Drawing.Point(12, 58);
+            this.splitContainer1.Name = "splitContainer1";
+            this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // splitContainer1.Panel1
+            // 
+            this.splitContainer1.Panel1.Controls.Add(this.resourceListView);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.previewPanel);
+            this.splitContainer1.Size = new System.Drawing.Size(776, 669);
+            this.splitContainer1.SplitterDistance = 516;
+            this.splitContainer1.TabIndex = 6;
             // 
             // ResourceExplorer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 739);
-            this.Controls.Add(this.previewPanel);
+            this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.exportButton);
             this.Controls.Add(this.openFileLabel);
             this.Controls.Add(this.openFileButton);
-            this.Controls.Add(this.resourceListView);
             this.Name = "ResourceExplorer";
             this.Text = "ResourceExplorer";
+            this.splitContainer1.Panel1.ResumeLayout(false);
+            this.splitContainer1.Panel2.ResumeLayout(false);
+            this.splitContainer1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -117,6 +144,7 @@
         private System.Windows.Forms.Label openFileLabel;
         private System.Windows.Forms.Button exportButton;
         private System.Windows.Forms.Panel previewPanel;
+        private System.Windows.Forms.SplitContainer splitContainer1;
     }
 }
 
