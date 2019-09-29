@@ -30,18 +30,39 @@ namespace ResourceExplorer
             this.resourceListView.Columns.Add("Size", 80);
             this.resourceListView.Columns.Add("Hex", 200);
             this.resourceListView.Columns.Add("Printable", -2);
+            this.resourceListView.ItemDrag += ResourceListView_ItemDrag;
+        }
+
+        private void ResourceListView_ItemDrag(object sender, ItemDragEventArgs e)
+        {
+            // need to copy the resource to a temp file first
+            ListView view = (ListView)sender;
+            ListViewItem item = view.SelectedItems[0];
+            Resource resource = this.resourceList[int.Parse(item.SubItems[0].Text)];
+            string tempFile = Path.Combine(Path.GetTempPath(), resource.GetDefaultExportName());
+            using (System.IO.FileStream file = new System.IO.FileStream(tempFile, FileMode.Create))
+            {
+                ResourceReader reader = resource.GetReader();
+                while (reader.Remaining() > 0)
+                {
+                    byte[] data = reader.Read(65536);
+                    file.Write(data, 0, data.Length);
+                }
+            }
+            string[] paths = { tempFile };
+            this.resourceListView.DoDragDrop(new DataObject(DataFormats.FileDrop, paths), DragDropEffects.Move);
         }
 
         public void DisplayStatus(string message)
         {
-            //XXX messagebox or inline UI element instead
-            Console.WriteLine(message);
+            this.statusLabel.Text = message;
         }
 
         private void ResetUi()
         {
             this.previewPanel.Controls.Clear();
             this.resourceListView.Items.Clear();
+            DisplayStatus("");
         }
 
         private Resource[] GetSelectedResources()
@@ -57,6 +78,7 @@ namespace ResourceExplorer
 
         private void ListView1_SelectedIndexChanged(object sender, EventArgs e)
         {
+            DisplayStatus("");
             this.previewPanel.Controls.Clear();
             ListView view = (ListView)sender;
             ListView.SelectedListViewItemCollection selectedItems = view.SelectedItems;
@@ -66,14 +88,14 @@ namespace ResourceExplorer
             }
             ListViewItem item0 = selectedItems[0];
             Resource resource = this.resourceList[int.Parse(item0.SubItems[0].Text)];
-            if (resource.getDisplayType() == "BITMAP" || resource.getDisplayType() == "ICON")
+            if (resource.GetDisplayType() == "BITMAP" || resource.GetDisplayType() == "ICON")
             {
-                byte[] data = this.currentFile.GetResource(resource);
+                byte[] data = resource.GetReader().Read();
                 MemoryStream stream = new MemoryStream(data);
                 PictureBox pic = new PictureBox();
                 try
                 {
-                    if (resource.getDisplayType() == "BITMAP")
+                    if (resource.GetDisplayType() == "BITMAP")
                         pic.Image = new Bitmap(stream);
                     else
                         pic.Image = Bitmap.FromHicon(new Icon(stream, new Size(48, 48)).Handle);
@@ -82,23 +104,23 @@ namespace ResourceExplorer
                 }
                 catch (ArgumentException)
                 {
-
+                    DisplayStatus("Failed to get image preview");
                 }
             }
-            else if (resource.getDisplayType() == "STRING" ||
-                resource.getDisplayType() == "HTML" ||
-                resource.getDisplayType() == "MANIFEST" ||
-                resource.getDisplayType() == "VERSION")
+            else if (resource.GetDisplayType() == "STRING" ||
+                resource.GetDisplayType() == "HTML" ||
+                resource.GetDisplayType() == "MANIFEST" ||
+                resource.GetDisplayType() == "VERSION")
             {
-                byte[] data = this.currentFile.GetResource(resource, 2048);
+                byte[] data = resource.GetReader().Read(2048);
                 TextBox box = new TextBox();
-                if (resource.getDisplayType() == "VERSION")
+                if (resource.GetDisplayType() == "VERSION")
                 {
                     box.Text = Encoding.Unicode.GetString(data).Substring(3).Replace('\u0000', ' ');
                 }
                 else
                 {
-                    box.Text = resource.getEncoding().GetString(data);
+                    box.Text = resource.GetEncoding().GetString(data);
                 }
                 box.Multiline = true;
                 box.Dock = DockStyle.Fill;
@@ -109,7 +131,7 @@ namespace ResourceExplorer
             else
             {
                 // best effort "strings"
-                byte[] data = this.currentFile.GetResource(resource, 2048);
+                byte[] data = resource.GetReader().Read(2048);
                 string printable = Resource.GetString(data);
                 if (printable.Length > 3)
                 {
@@ -126,13 +148,13 @@ namespace ResourceExplorer
 
         private void ExportResource(Resource resource)
         {
-            byte[] data = currentFile.GetResource(resource);
+            byte[] data = resource.GetReader().Read();
             if (data == null)
             {
                 DisplayStatus("Failed to GetResource");
                 return;
             }
-            this.saveFileDialog1.FileName = resource.getDefaultExportName();
+            this.saveFileDialog1.FileName = resource.GetDefaultExportName();
             if (this.saveFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 Stream outStream = this.saveFileDialog1.OpenFile();
@@ -146,7 +168,6 @@ namespace ResourceExplorer
 
         private void OpenFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
-            Console.WriteLine(this.openFileDialog1.FileName);
             ProcessFile(this.openFileDialog1.FileName);
         }
 
@@ -168,15 +189,15 @@ namespace ResourceExplorer
                 Resource r = this.resourceList[i];
                 ListViewItem item = new ListViewItem(i.ToString());
                 item.SubItems.Add(r.name);
-                item.SubItems.Add(r.getDisplayType());
+                item.SubItems.Add(r.GetDisplayType());
                 item.SubItems.Add(r.size.ToString());
-                item.SubItems.Add(r.getHexPreview());
-                item.SubItems.Add(r.getContextualPreview());
+                item.SubItems.Add(r.GetHexPreview());
+                item.SubItems.Add(r.GetContextualPreview());
                 this.resourceListView.Items.Add(item);
             }
-            // resize columns
-            this.resourceListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-            this.resourceListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
+            // resize columns (very slow)
+            //this.resourceListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
+            //this.resourceListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
         }
 
         private void Button1_Click(object sender, EventArgs e)

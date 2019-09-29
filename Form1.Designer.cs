@@ -36,6 +36,8 @@
             this.exportButton = new System.Windows.Forms.Button();
             this.previewPanel = new System.Windows.Forms.Panel();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.statusLabel = new System.Windows.Forms.Label();
+            this.currentFileLeftLabel = new System.Windows.Forms.Label();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -48,7 +50,7 @@
             this.resourceListView.HideSelection = false;
             this.resourceListView.Location = new System.Drawing.Point(0, 0);
             this.resourceListView.Name = "resourceListView";
-            this.resourceListView.Size = new System.Drawing.Size(776, 516);
+            this.resourceListView.Size = new System.Drawing.Size(776, 512);
             this.resourceListView.TabIndex = 0;
             this.resourceListView.UseCompatibleStateImageBehavior = false;
             this.resourceListView.SelectedIndexChanged += new System.EventHandler(this.ListView1_SelectedIndexChanged);
@@ -72,7 +74,7 @@
             // openFileLabel
             // 
             this.openFileLabel.AutoSize = true;
-            this.openFileLabel.Location = new System.Drawing.Point(187, 34);
+            this.openFileLabel.Location = new System.Drawing.Point(253, 34);
             this.openFileLabel.Name = "openFileLabel";
             this.openFileLabel.Size = new System.Drawing.Size(130, 13);
             this.openFileLabel.TabIndex = 2;
@@ -93,7 +95,7 @@
             this.previewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.previewPanel.Location = new System.Drawing.Point(0, 0);
             this.previewPanel.Name = "previewPanel";
-            this.previewPanel.Size = new System.Drawing.Size(776, 149);
+            this.previewPanel.Size = new System.Drawing.Size(776, 148);
             this.previewPanel.TabIndex = 5;
             // 
             // splitContainer1
@@ -112,15 +114,34 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.previewPanel);
-            this.splitContainer1.Size = new System.Drawing.Size(776, 669);
-            this.splitContainer1.SplitterDistance = 516;
+            this.splitContainer1.Size = new System.Drawing.Size(776, 664);
+            this.splitContainer1.SplitterDistance = 512;
             this.splitContainer1.TabIndex = 6;
+            // 
+            // statusLabel
+            // 
+            this.statusLabel.AutoSize = true;
+            this.statusLabel.Location = new System.Drawing.Point(187, 9);
+            this.statusLabel.Name = "statusLabel";
+            this.statusLabel.Size = new System.Drawing.Size(0, 13);
+            this.statusLabel.TabIndex = 7;
+            // 
+            // currentFileLeftLabel
+            // 
+            this.currentFileLeftLabel.AutoSize = true;
+            this.currentFileLeftLabel.Location = new System.Drawing.Point(187, 34);
+            this.currentFileLeftLabel.Name = "currentFileLeftLabel";
+            this.currentFileLeftLabel.Size = new System.Drawing.Size(60, 13);
+            this.currentFileLeftLabel.TabIndex = 8;
+            this.currentFileLeftLabel.Text = "Current file:";
             // 
             // ResourceExplorer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 739);
+            this.ClientSize = new System.Drawing.Size(800, 734);
+            this.Controls.Add(this.currentFileLeftLabel);
+            this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.exportButton);
             this.Controls.Add(this.openFileLabel);
@@ -145,6 +166,8 @@
         private System.Windows.Forms.Button exportButton;
         private System.Windows.Forms.Panel previewPanel;
         private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.Label statusLabel;
+        private System.Windows.Forms.Label currentFileLeftLabel;
     }
 }
 

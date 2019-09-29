@@ -74,44 +74,6 @@ namespace ResourceExplorer
             return instanceResources[this.hLibrary.ToString()];
         }
 
-        public byte[] GetResource(Resource resource, int maxSize = -1)
-        {
-            return GetResource(resource.type, resource.name, maxSize);
-        }
-
-        /*
-         * Type and name, if numeric, will be in #NUMBER format
-         */
-        public byte[] GetResource(string type, string name, int maxSize = -1)
-        {
-            IList<Resource> resources;
-            if (instanceResources.ContainsKey(this.hLibrary.ToString()))
-                resources = instanceResources[this.hLibrary.ToString()];
-            else
-                resources = GetResourceList();
-            foreach (Resource r in resources)
-            {
-                if (r.type == type && r.name == name)
-                {
-                    IntPtr hGlobal = LoadResource(this.hLibrary, r.hResource);
-                    if (hGlobal.ToInt64() == 0)
-                    {
-                        break;
-                    }
-                    IntPtr buff = LockResource(hGlobal);
-                    if (buff.ToInt64() == 0)
-                    {
-                        break;
-                    }
-                    int size = maxSize <= 0 ? r.size : Math.Min(maxSize, r.size);
-                    byte[] managedBuff = new byte[size];
-                    Marshal.Copy(buff, managedBuff, 0, size);
-                    return managedBuff;
-                }
-            }
-            return null; // new byte[0]
-        }
-
         private static int EnumResourceTypesCallback(IntPtr hModule, IntPtr type, IntPtr param)
         {
             EnumResourceNamesW(hModule, type, EnumResourceNamesCallback, param);
@@ -144,9 +106,14 @@ namespace ResourceExplorer
                 nameString = "#" + name.ToString();
 
             Win32Resources winr = instances[hModule.ToString()];
-            Resource resource = new Resource(winr.originalFilename, hResource, typeString, nameString, size);
+            IntPtr hGlobal = LoadResource(winr.hLibrary, hResource);
+            if (hGlobal.ToInt64() == 0)
+            {
+                return 0;
+            }
+            IntPtr buffPtr = LockResource(hGlobal);
+            Resource resource = new Resource(winr.originalFilename, buffPtr, typeString, nameString, size);
             instanceResources[hModule.ToString()].Add(resource);
-            resource.setPreview(winr.GetResource(resource, 128));
             return 1;
         }
     }
@@ -156,7 +123,7 @@ namespace ResourceExplorer
         public string type;
         public string name;
         public int size;
-        public IntPtr hResource;
+        public IntPtr buffPtr; // invalid once Win32Resources instance is destroyed
         private byte[] preview;
         private string filename; // PE file containing the resource
 
@@ -185,25 +152,48 @@ namespace ResourceExplorer
             {20, "VXD"}
         };
 
+        public bool IsPreviewable()
+        {
+            switch (GetDisplayType())
+            {
+                case "DIALOG":
+                case "HTML":
+                case "MANIFEST":
+                case "RCDATA":
+                case "STRING":
+                case "VERSION":
+                    return true;
+            }
+            return false;
+        }
+
+        public bool IsTextType()
+        {
+            switch (GetDisplayType())
+            {
+                case "HTML":
+                case "MANIFEST":
+                case "STRING":
+                    return true;
+            }
+            return false;
+        }
+
         /*
          * Get a suitable export filename
          */
-        public string getDefaultExportName()
+        public string GetDefaultExportName()
         {
             string parentFilename = Path.GetFileNameWithoutExtension(this.filename);
             string nameTmp = name.Replace("#", "0");
             string typeTmp = type.Replace("#", "0");
             string ext = "bin";
-            if (getDisplayType() == "STRING")
+            if (IsTextType())
             {
+                // TODO add BOM when exporting these?
                 ext = "txt";
             }
             return string.Format("{0}_{1}-{2}.{3}", parentFilename, nameTmp, typeTmp, ext);
-        }
-
-        public void setPreview(byte[] data)
-        {
-            this.preview = data;
         }
 
         public static Encoding GetEncoding(byte[] data)
@@ -223,19 +213,23 @@ namespace ResourceExplorer
                     return Encoding.Unicode;
                 if (bom[0] == 0)
                     return Encoding.BigEndianUnicode;
+                if (bom[0] < 0x7f && bom[0] >= 0x20 &&
+                    bom[1] < 0x7f && bom[1] >= 0x20 &&
+                    bom[2] < 0x7f && bom[2] >= 0x20)
+                    return Encoding.UTF8;
             }
-            return Encoding.Default;
+            return Encoding.Unicode;
         }
 
         /*
          * try to determine the encoding
          */
-        public Encoding getEncoding()
+        public Encoding GetEncoding()
         {
             return GetEncoding(this.preview);
         }
 
-        public string getDisplayType()
+        public string GetDisplayType()
         {
             if (this.type[0] == '#')
             {
@@ -248,21 +242,30 @@ namespace ResourceExplorer
             return this.type;
         }
 
-        public string getHexPreview(int size = 32)
+        private void InitPreview()
         {
+            if (this.preview == null)
+                this.preview = new ResourceReader(this).Read(128);
+        }
+        public string GetHexPreview(int size = 32)
+        {
+            InitPreview();
             string s = BitConverter.ToString(this.preview).Replace("-", " ");
             return s.Substring(0, Math.Min(s.Length, size));
         }
 
-        public string getContextualPreview(int size = 64)
+        public string GetContextualPreview(int size = 64)
         {
+            if (!IsPreviewable())
+                return "";
+            InitPreview();
             // return readable text for string resources
             string s = "";
-            if (getDisplayType() == "STRING" || getDisplayType() == "HTML" || getDisplayType() == "MANIFEST")
+            if (IsTextType())
             {
-                s = getEncoding().GetString(this.preview);
+                s = GetEncoding().GetString(this.preview);
             }
-            else if (getDisplayType() == "VERSION")
+            else if (GetDisplayType() == "VERSION")
             {
                 s = Encoding.Unicode.GetString(this.preview).Substring(3).Replace('\u0000', ' ');
             }
@@ -298,13 +301,19 @@ namespace ResourceExplorer
             return printable.ToString();
         }
 
-        public Resource(string filename, IntPtr hResource, string type, string name, int size)
+        public ResourceReader GetReader()
+        {
+            return new ResourceReader(this);
+        }
+
+        public Resource(string filename, IntPtr buffPtr, string type, string name, int size)
         {
             this.filename = filename;
-            this.hResource = hResource;
+            this.buffPtr = buffPtr;
             this.type = type;
             this.name = name;
             this.size = size;
+            this.preview = null;
         }
 
         public override string ToString()
@@ -312,5 +321,44 @@ namespace ResourceExplorer
             return string.Format("type = {0}, name = {1}, size = {2}", this.type, this.name, this.size);
         }
 
+    }
+
+    class ResourceReader
+    {
+        private Resource resource;
+        private int position;
+        private readonly int size;
+
+        public ResourceReader(Resource resource)
+        {
+            this.size = resource.size;
+            this.resource = resource;
+            this.position = 0;
+        }
+
+        public byte[] Read(int count)
+        {
+            int left = this.size - this.position;
+            int num = Math.Min(count, left);
+            if (num > 0)
+            {
+                byte[] managedBuff = new byte[num];
+                IntPtr ptr = new IntPtr(this.resource.buffPtr.ToInt64() + this.position);
+                Marshal.Copy(ptr, managedBuff, 0, num);
+                this.position += num;
+                return managedBuff;
+            }
+            return new byte[0];
+        }
+
+        public byte[] Read()
+        {
+            return Read(this.size - this.position);
+        }
+
+        public int Remaining()
+        {
+            return this.size - this.position;
+        }
     }
 }
