@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,8 +17,8 @@ namespace ResourceExplorer
         public delegate int EnumResourceNamesDelegate(IntPtr hModule, IntPtr type, IntPtr name, IntPtr param);
 
         // kernel32!LoadLibraryEx flags
-        private static UInt32 DONT_RESOLVE_DLL_REFERENCES = 1;
-        private static UInt32 LOAD_LIBRARY_AS_DATAFILE = 2;
+        public readonly static UInt32 DONT_RESOLVE_DLL_REFERENCES = 1;
+        public readonly static UInt32 LOAD_LIBRARY_AS_DATAFILE = 2;
 
         private static IDictionary<string, IList<Resource>> instanceResources = new Dictionary<string, IList<Resource>>();
         private static IDictionary<string, Win32Resources> instances = new Dictionary<string, Win32Resources>();
@@ -120,12 +121,12 @@ namespace ResourceExplorer
 
     class Resource
     {
-        public string type;
-        public string name;
-        public int size;
-        public IntPtr buffPtr; // invalid once Win32Resources instance is destroyed
+        public readonly string type;
+        public readonly string name;
+        public readonly int size;
+        public readonly IntPtr buffPtr; // invalid once Win32Resources instance is destroyed
         private byte[] preview;
-        private string filename; // PE file containing the resource
+        private readonly string filename; // PE file containing the resource
 
         private static IDictionary<int, string> intTypeMap = new Dictionary<int, string>
         {
@@ -274,6 +275,35 @@ namespace ResourceExplorer
                 s = GetString(this.preview);
             }
             return s.Substring(0, Math.Min(s.Length, size));
+        }
+
+        public bool IsImageType()
+        {
+            switch (GetDisplayType())
+            {
+                case "BITMAP":
+                case "ICON":
+                case "PNG":
+                    return true;
+            }
+            return false;
+        }
+
+        public Image GetImage()
+        {
+            if (IsImageType())
+            {
+                Stream stream = new MemoryStream((new ResourceReader(this)).Read());
+                if (GetDisplayType() == "BITMAP")
+                    return new Bitmap(stream);
+                else if (GetDisplayType() == "ICON") {
+                    //TODO this is impossible
+                    return null;
+                }
+                else if (GetDisplayType() == "PNG")
+                    return Image.FromStream(stream);
+            }
+            return null;
         }
 
         public static string GetString(byte[] data)

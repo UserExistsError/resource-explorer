@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
@@ -51,6 +50,8 @@ namespace ResourceExplorer
             }
             string[] paths = { tempFile };
             this.resourceListView.DoDragDrop(new DataObject(DataFormats.FileDrop, paths), DragDropEffects.Move);
+            // cleanup in case file isn't dropped/moved
+            File.Delete(tempFile);
         }
 
         public void DisplayStatus(string message)
@@ -62,6 +63,7 @@ namespace ResourceExplorer
         {
             this.previewPanel.Controls.Clear();
             this.resourceListView.Items.Clear();
+            this.openFileLabel.Text = "";
             DisplayStatus("");
         }
 
@@ -88,17 +90,12 @@ namespace ResourceExplorer
             }
             ListViewItem item0 = selectedItems[0];
             Resource resource = this.resourceList[int.Parse(item0.SubItems[0].Text)];
-            if (resource.GetDisplayType() == "BITMAP" || resource.GetDisplayType() == "ICON")
+            if (resource.IsImageType())
             {
-                byte[] data = resource.GetReader().Read();
-                MemoryStream stream = new MemoryStream(data);
                 PictureBox pic = new PictureBox();
                 try
                 {
-                    if (resource.GetDisplayType() == "BITMAP")
-                        pic.Image = new Bitmap(stream);
-                    else
-                        pic.Image = Bitmap.FromHicon(new Icon(stream, new Size(48, 48)).Handle);
+                    pic.Image = resource.GetImage();
                     pic.SizeMode = PictureBoxSizeMode.AutoSize;
                     this.previewPanel.Controls.Add(pic);
                 }
@@ -112,7 +109,7 @@ namespace ResourceExplorer
                 resource.GetDisplayType() == "MANIFEST" ||
                 resource.GetDisplayType() == "VERSION")
             {
-                byte[] data = resource.GetReader().Read(2048);
+                byte[] data = resource.GetReader().Read(4096);
                 TextBox box = new TextBox();
                 if (resource.GetDisplayType() == "VERSION")
                 {
@@ -151,7 +148,7 @@ namespace ResourceExplorer
             byte[] data = resource.GetReader().Read();
             if (data == null)
             {
-                DisplayStatus("Failed to GetResource");
+                DisplayStatus("Failed to read resource");
                 return;
             }
             this.saveFileDialog1.FileName = resource.GetDefaultExportName();
@@ -180,7 +177,7 @@ namespace ResourceExplorer
             }
             catch (Exception exc)
             {
-                DisplayStatus("Failed to process file " + filename);
+                DisplayStatus("Failed to process file: " + filename);
                 return;
             }
             this.openFileLabel.Text = filename;
